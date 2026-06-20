@@ -218,6 +218,35 @@ export const useTrackerState = () => {
   const [state, setState] = useState<PersistedState>(() => deriveState(normalizePersistedState(loadPersistedState(createEmptyState()))))
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null)
 
+  const syncStateToCloud = async (nextState: PersistedState) => {
+    if (!nextState.cloudSync.enabled || nextState.cloudSync.provider !== 'github-gist') {
+      return
+    }
+
+    try {
+      const service = createCloudStorageService(nextState.cloudSync.provider, nextState)
+      const result = await service.save(nextState)
+      setState((previous) => ({
+        ...previous,
+        cloudSync: {
+          ...previous.cloudSync,
+          gistId: result.gistId ?? previous.cloudSync.gistId,
+          lastSyncedAt: new Date().toISOString(),
+          lastSyncError: undefined,
+        },
+      }))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'GitHub sync failed.'
+      setState((previous) => ({
+        ...previous,
+        cloudSync: {
+          ...previous.cloudSync,
+          lastSyncError: message,
+        },
+      }))
+    }
+  }
+
   useEffect(() => {
     persistState(state)
   }, [state])
@@ -258,7 +287,9 @@ export const useTrackerState = () => {
 
     setState((previous) => {
       const next = { ...previous, buys: [transaction, ...previous.buys] }
-      return addBackupIfEnabled(previous, addAuditEntry(deriveState(next), 'Transaction Created', 'Buy', `Created buy ${transaction.id}`), `Buy ${transaction.id}`)
+      const derived = deriveState(next)
+      void syncStateToCloud(derived)
+      return addBackupIfEnabled(previous, addAuditEntry(derived, 'Transaction Created', 'Buy', `Created buy ${transaction.id}`), `Buy ${transaction.id}`)
     })
 
     return { ok: true }
@@ -295,7 +326,9 @@ export const useTrackerState = () => {
 
     setState((previous) => {
       const next = { ...previous, sells: [transaction, ...previous.sells] }
-      return addBackupIfEnabled(previous, addAuditEntry(deriveState(next), 'Transaction Created', 'Sell', `Created sell ${transaction.id}`), `Sell ${transaction.id}`)
+      const derived = deriveState(next)
+      void syncStateToCloud(derived)
+      return addBackupIfEnabled(previous, addAuditEntry(derived, 'Transaction Created', 'Sell', `Created sell ${transaction.id}`), `Sell ${transaction.id}`)
     })
 
     return { ok: true }
@@ -336,8 +369,10 @@ export const useTrackerState = () => {
         ...previous,
         buys: previous.buys.map((buy) => (buy.id === id ? updatedBuy : buy)),
       }
+      const derived = deriveState(next)
+      void syncStateToCloud(derived)
 
-      return addBackupIfEnabled(previous, addAuditEntry(deriveState(next), 'Transaction Edited', 'Buy', `Edited buy ${id}`), `Buy edit ${id}`)
+      return addBackupIfEnabled(previous, addAuditEntry(derived, 'Transaction Edited', 'Buy', `Edited buy ${id}`), `Buy edit ${id}`)
     })
 
     return { ok: true }
@@ -380,8 +415,10 @@ export const useTrackerState = () => {
         ...previous,
         sells: previous.sells.map((sell) => (sell.id === id ? updatedSell : sell)),
       }
+      const derived = deriveState(next)
+      void syncStateToCloud(derived)
 
-      return addBackupIfEnabled(previous, addAuditEntry(deriveState(next), 'Transaction Edited', 'Sell', `Edited sell ${id}`), `Sell edit ${id}`)
+      return addBackupIfEnabled(previous, addAuditEntry(derived, 'Transaction Edited', 'Sell', `Edited sell ${id}`), `Sell edit ${id}`)
     })
 
     return { ok: true }
@@ -400,7 +437,9 @@ export const useTrackerState = () => {
     setUndoSnapshot({ state: cloneState(state), label: `Deleted buy ${id}`, expiresAt: Date.now() + 30_000 })
     setState((previous) => {
       const next = { ...previous, buys: previous.buys.filter((buy) => buy.id !== id) }
-      return addBackupIfEnabled(previous, addAuditEntry(deriveState(next), 'Transaction Deleted', 'Buy', `Deleted buy ${id}`), `Buy delete ${id}`)
+      const derived = deriveState(next)
+      void syncStateToCloud(derived)
+      return addBackupIfEnabled(previous, addAuditEntry(derived, 'Transaction Deleted', 'Buy', `Deleted buy ${id}`), `Buy delete ${id}`)
     })
 
     return { ok: true }
@@ -414,7 +453,9 @@ export const useTrackerState = () => {
     setUndoSnapshot({ state: cloneState(state), label: `Deleted sell ${id}`, expiresAt: Date.now() + 30_000 })
     setState((previous) => {
       const next = { ...previous, sells: previous.sells.filter((sell) => sell.id !== id) }
-      return addBackupIfEnabled(previous, addAuditEntry(deriveState(next), 'Transaction Deleted', 'Sell', `Deleted sell ${id}`), `Sell delete ${id}`)
+      const derived = deriveState(next)
+      void syncStateToCloud(derived)
+      return addBackupIfEnabled(previous, addAuditEntry(derived, 'Transaction Deleted', 'Sell', `Deleted sell ${id}`), `Sell delete ${id}`)
     })
 
     return { ok: true }
@@ -440,7 +481,9 @@ export const useTrackerState = () => {
         buys: deleteIds(previous.buys, buyIds),
         sells: deleteIds(previous.sells, sellIds),
       }
-      return addBackupIfEnabled(previous, addAuditEntry(deriveState(next), 'Bulk Delete', 'System', `Deleted ${buyIds.length} buys and ${sellIds.length} sells`), 'Bulk delete')
+      const derived = deriveState(next)
+      void syncStateToCloud(derived)
+      return addBackupIfEnabled(previous, addAuditEntry(derived, 'Bulk Delete', 'System', `Deleted ${buyIds.length} buys and ${sellIds.length} sells`), 'Bulk delete')
     })
 
     return { ok: true }
@@ -470,7 +513,11 @@ export const useTrackerState = () => {
       return { ok: false, message: 'Invalid backup file.' }
     }
 
-    setState(() => addAuditEntry(deriveState(cloneState(normalizePersistedState(incoming))), 'Data Imported', 'System', 'Imported JSON backup'))
+    const derived = deriveState(cloneState(normalizePersistedState(incoming)))
+    setState(() => {
+      void syncStateToCloud(derived)
+      return addAuditEntry(derived, 'Data Imported', 'System', 'Imported JSON backup')
+    })
     return { ok: true }
   }
 
@@ -480,7 +527,11 @@ export const useTrackerState = () => {
       return { ok: false, message: 'Backup not found.' }
     }
 
-    setState(() => addAuditEntry(deriveState(cloneState(normalizePersistedState(backup.state))), 'Data Restored', 'System', `Restored backup ${backupId}`))
+    const derived = deriveState(cloneState(normalizePersistedState(backup.state)))
+    setState(() => {
+      void syncStateToCloud(derived)
+      return addAuditEntry(derived, 'Data Restored', 'System', `Restored backup ${backupId}`)
+    })
     return { ok: true }
   }
 
