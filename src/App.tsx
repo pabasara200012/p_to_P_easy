@@ -1121,7 +1121,7 @@ function App() {
             <div>
               <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Sync Status</p>
               <p className={classNames('mt-2 text-sm font-semibold', state.cloudSync.lastSyncError ? 'text-rose-300' : 'text-emerald-300')}>
-                {state.cloudSync.lastSyncError ? state.cloudSync.lastSyncError : 'Ready'}
+                {state.cloudSync.lastSyncError ? state.cloudSync.lastSyncError : state.cloudSync.lastSyncMessage ?? 'Ready'}
               </p>
             </div>
           </div>

@@ -53,6 +53,7 @@ export interface CloudSyncConfig {
   accessToken?: string
   fileName?: string
   lastSyncedAt?: string
+  lastSyncMessage?: string
   lastSyncError?: string
 }
 

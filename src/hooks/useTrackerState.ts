@@ -232,6 +232,7 @@ export const useTrackerState = () => {
           ...previous.cloudSync,
           gistId: result.gistId ?? previous.cloudSync.gistId,
           lastSyncedAt: new Date().toISOString(),
+          lastSyncMessage: 'Saved to GitHub Gist',
           lastSyncError: undefined,
         },
       }))
@@ -242,6 +243,7 @@ export const useTrackerState = () => {
         cloudSync: {
           ...previous.cloudSync,
           lastSyncError: message,
+          lastSyncMessage: undefined,
         },
       }))
     }
@@ -647,6 +649,7 @@ export const useTrackerState = () => {
             ...previous.cloudSync,
             gistId: result.gistId,
             lastSyncedAt: new Date().toISOString(),
+            lastSyncMessage: 'Saved to GitHub Gist',
             lastSyncError: undefined,
           },
         }))
@@ -656,6 +659,7 @@ export const useTrackerState = () => {
           cloudSync: {
             ...previous.cloudSync,
             lastSyncedAt: new Date().toISOString(),
+              lastSyncMessage: 'Saved to GitHub Gist',
             lastSyncError: undefined,
           },
         }))
@@ -669,6 +673,7 @@ export const useTrackerState = () => {
         cloudSync: {
           ...previous.cloudSync,
           lastSyncError: message,
+          lastSyncMessage: undefined,
         },
       }))
       return { ok: false, message }
@@ -688,6 +693,15 @@ export const useTrackerState = () => {
       }
 
       setState(() => addAuditEntry(deriveState(cloneState(normalizePersistedState(remoteState))), 'Data Restored', 'System', 'Loaded data from GitHub Gist'))
+      setState((previous) => ({
+        ...previous,
+        cloudSync: {
+          ...previous.cloudSync,
+          lastSyncMessage: 'Loaded from GitHub Gist',
+          lastSyncError: undefined,
+          lastSyncedAt: new Date().toISOString(),
+        },
+      }))
       return { ok: true, message: 'Loaded data from GitHub Gist.' }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'GitHub sync failed.'
@@ -696,6 +710,7 @@ export const useTrackerState = () => {
         cloudSync: {
           ...previous.cloudSync,
           lastSyncError: message,
+          lastSyncMessage: undefined,
         },
       }))
       return { ok: false, message }
