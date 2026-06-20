@@ -1109,6 +1109,22 @@ function App() {
               Load from Gist
             </button>
           </div>
+          <div className="sm:col-span-2 grid gap-3 rounded-3xl border border-white/10 bg-white/5 p-4 md:grid-cols-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Cloud Save</p>
+              <p className="mt-2 text-sm font-semibold text-white">{state.cloudSync.enabled && state.cloudSync.provider === 'github-gist' ? 'Enabled' : 'Disabled'}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Last Sync</p>
+              <p className="mt-2 text-sm font-semibold text-white">{state.cloudSync.lastSyncedAt ? format(new Date(state.cloudSync.lastSyncedAt), 'PPpp') : 'Not synced yet'}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Sync Status</p>
+              <p className={classNames('mt-2 text-sm font-semibold', state.cloudSync.lastSyncError ? 'text-rose-300' : 'text-emerald-300')}>
+                {state.cloudSync.lastSyncError ? state.cloudSync.lastSyncError : 'Ready'}
+              </p>
+            </div>
+          </div>
         </div>
       </SectionCard>
 
