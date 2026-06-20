@@ -19,7 +19,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { ArrowUpRight, Clock3, Sparkles, TrendingUp, WalletCards } from 'lucide-react'
+import { ArrowUpRight, Clock3, Edit2, Eye, Sparkles, Trash2, TrendingUp, WalletCards } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { Navigation } from './components/Navigation'
 import { MetricCard } from './components/MetricCard'
@@ -418,93 +418,197 @@ function App() {
   )
 
   const renderBuyPage = () => (
-    <SectionCard title="Buy Transaction" subtitle="Add inventory and capture acquisition cost">
-      <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleBuySubmit}>
-        <Field label="Date & Time">
-          <input type="datetime-local" value={buyForm.dateTime} onChange={(event) => setBuyForm({ ...buyForm, dateTime: event.target.value })} />
-        </Field>
-        <Field label="Currency">
-          <select value={buyForm.currency} onChange={(event) => setBuyForm({ ...buyForm, currency: event.target.value as BuyFormState['currency'] })}>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-            <option value="AED">AED</option>
-            <option value="USDT">USDT</option>
-          </select>
-        </Field>
-        <Field label="Buy Rate (LKR per USD)">
-          <input type="number" min="0" step="0.01" value={buyForm.buyRate || ''} onChange={(event) => setBuyForm({ ...buyForm, buyRate: Number(event.target.value) })} />
-        </Field>
-        <Field label="LKR Amount Paid">
-          <input type="number" min="0" step="0.01" value={buyForm.lkrAmountPaid || ''} onChange={(event) => setBuyForm({ ...buyForm, lkrAmountPaid: Number(event.target.value) })} />
-        </Field>
-        <Field label="Bank Charges">
-          <input type="number" min="0" step="0.01" value={buyForm.bankCharges || ''} onChange={(event) => setBuyForm({ ...buyForm, bankCharges: Number(event.target.value) })} />
-        </Field>
-        <Field label="Additional Charges">
-          <input type="number" min="0" step="0.01" value={buyForm.additionalCharges || ''} onChange={(event) => setBuyForm({ ...buyForm, additionalCharges: Number(event.target.value) })} />
-        </Field>
-        <Field label="Tags">
-          <input type="text" value={buyForm.tags} onChange={(event) => setBuyForm({ ...buyForm, tags: event.target.value })} placeholder="urgent, preferred bank" />
-        </Field>
-        <Field label="Notes" className="sm:col-span-2">
-          <textarea rows={4} value={buyForm.notes} onChange={(event) => setBuyForm({ ...buyForm, notes: event.target.value })} placeholder="Optional notes" />
-        </Field>
-        <div className="sm:col-span-2 flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <span className="text-sm text-slate-300">USD Received: {usdFormatter(buyForm.buyRate > 0 ? buyForm.lkrAmountPaid / buyForm.buyRate : 0)}</span>
-          <span className="text-sm text-slate-300">Total Cost: {currencyFormatter((buyForm.lkrAmountPaid || 0) + (buyForm.bankCharges || 0) + (buyForm.additionalCharges || 0))}</span>
-          <span className="text-sm text-slate-300">Effective Buy Rate: {currencyFormatter(buyForm.buyRate > 0 && buyForm.lkrAmountPaid > 0 ? (buyForm.lkrAmountPaid + buyForm.bankCharges + buyForm.additionalCharges) / (buyForm.lkrAmountPaid / buyForm.buyRate) : 0)}</span>
+    <div className="space-y-4">
+      <SectionCard title="Buy Transaction" subtitle="Capture inventory with live cost preview and quick correction tools">
+        <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+          <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleBuySubmit}>
+            <Field label="Date & Time">
+              <input type="datetime-local" value={buyForm.dateTime} onChange={(event) => setBuyForm({ ...buyForm, dateTime: event.target.value })} />
+            </Field>
+            <Field label="Currency">
+              <select value={buyForm.currency} onChange={(event) => setBuyForm({ ...buyForm, currency: event.target.value as BuyFormState['currency'] })}>
+                {getCurrencyOptions().map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Buy Rate (LKR per USD)">
+              <input type="number" min="0" step="0.01" value={buyForm.buyRate || ''} onChange={(event) => setBuyForm({ ...buyForm, buyRate: Number(event.target.value) })} />
+            </Field>
+            <Field label="LKR Amount Paid">
+              <input type="number" min="0" step="0.01" value={buyForm.lkrAmountPaid || ''} onChange={(event) => setBuyForm({ ...buyForm, lkrAmountPaid: Number(event.target.value) })} />
+            </Field>
+            <Field label="Bank Charges">
+              <input type="number" min="0" step="0.01" value={buyForm.bankCharges || ''} onChange={(event) => setBuyForm({ ...buyForm, bankCharges: Number(event.target.value) })} />
+            </Field>
+            <Field label="Additional Charges">
+              <input type="number" min="0" step="0.01" value={buyForm.additionalCharges || ''} onChange={(event) => setBuyForm({ ...buyForm, additionalCharges: Number(event.target.value) })} />
+            </Field>
+            <Field label="Tags">
+              <input type="text" value={buyForm.tags} onChange={(event) => setBuyForm({ ...buyForm, tags: event.target.value })} placeholder="urgent, preferred bank" />
+            </Field>
+            <Field label="Notes" className="sm:col-span-2">
+              <textarea rows={4} value={buyForm.notes} onChange={(event) => setBuyForm({ ...buyForm, notes: event.target.value })} placeholder="Optional notes" />
+            </Field>
+            <div className="sm:col-span-2 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-emerald-200">USD Received</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{usdFormatter(buyForm.buyRate > 0 ? buyForm.lkrAmountPaid / buyForm.buyRate : 0)}</p>
+              </div>
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-cyan-200">Total Cost</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{currencyFormatter((buyForm.lkrAmountPaid || 0) + (buyForm.bankCharges || 0) + (buyForm.additionalCharges || 0))}</p>
+              </div>
+              <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-fuchsia-200">Effective Buy Rate</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{currencyFormatter(buyForm.buyRate > 0 && buyForm.lkrAmountPaid > 0 ? (buyForm.lkrAmountPaid + buyForm.bankCharges + buyForm.additionalCharges) / (buyForm.lkrAmountPaid / buyForm.buyRate) : 0)}</p>
+              </div>
+            </div>
+            <button className="sm:col-span-2 rounded-2xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-300" type="submit">
+              Save Buy Transaction
+            </button>
+          </form>
+
+          <div className="space-y-3">
+            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Recent Buys</p>
+              <p className="mt-2 text-sm text-slate-300">Quick edit or delete mistakes without opening History.</p>
+            </div>
+            {state.buys.length === 0 ? (
+              <EmptyState title="No buy entries yet" description="Your newest buy transactions will appear here with edit and delete actions." />
+            ) : (
+              <div className="space-y-3">
+                {state.buys.slice(0, 4).map((buy) => (
+                  <article key={buy.id} className="rounded-[24px] border border-white/10 bg-[var(--app-card-soft)] p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{friendlyDateTime(buy.dateTime)}</p>
+                        <p className="mt-1 text-xs text-slate-400">{buy.currency} • {buy.tags.length > 0 ? buy.tags.join(', ') : 'No tags'}</p>
+                      </div>
+                      <p className="text-right text-lg font-semibold text-emerald-300">{currencyFormatter(buy.totalCost)}</p>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => openEditor('buy', 'view', buy.id)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10">
+                        <Eye className="h-3.5 w-3.5" />
+                        View
+                      </button>
+                      <button type="button" onClick={() => openEditor('buy', 'edit', buy.id)} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/15 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/25">
+                        <Edit2 className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                      <button type="button" onClick={() => confirmDelete('Delete Buy Transaction', 'This action will recalculate inventory, profits, reports and analytics.', () => actions.deleteBuyTransaction(buy.id))} className="inline-flex items-center gap-2 rounded-xl border border-rose-400/20 bg-rose-400/15 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/25">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <button className="sm:col-span-2 rounded-2xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300" type="submit">
-          Save Buy Transaction
-        </button>
-      </form>
-    </SectionCard>
+      </SectionCard>
+    </div>
   )
 
   const renderSellPage = () => (
-    <SectionCard title="Sell Transaction" subtitle="Allocate inventory using FIFO and calculate profit automatically">
-      <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSellSubmit}>
-        <Field label="Date & Time">
-          <input type="datetime-local" value={sellForm.dateTime} onChange={(event) => setSellForm({ ...sellForm, dateTime: event.target.value })} />
-        </Field>
-        <Field label="Currency">
-          <select value={sellForm.currency} onChange={(event) => setSellForm({ ...sellForm, currency: event.target.value as SellFormState['currency'] })}>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-            <option value="AED">AED</option>
-            <option value="USDT">USDT</option>
-          </select>
-        </Field>
-        <Field label="Sell Rate (LKR per USD)">
-          <input type="number" min="0" step="0.01" value={sellForm.sellRate || ''} onChange={(event) => setSellForm({ ...sellForm, sellRate: Number(event.target.value) })} />
-        </Field>
-        <Field label="USD Sold">
-          <input type="number" min="0" step="0.01" value={sellForm.usdSold || ''} onChange={(event) => setSellForm({ ...sellForm, usdSold: Number(event.target.value) })} />
-        </Field>
-        <Field label="Bank Charges">
-          <input type="number" min="0" step="0.01" value={sellForm.bankCharges || ''} onChange={(event) => setSellForm({ ...sellForm, bankCharges: Number(event.target.value) })} />
-        </Field>
-        <Field label="Additional Charges">
-          <input type="number" min="0" step="0.01" value={sellForm.additionalCharges || ''} onChange={(event) => setSellForm({ ...sellForm, additionalCharges: Number(event.target.value) })} />
-        </Field>
-        <Field label="Tags">
-          <input type="text" value={sellForm.tags} onChange={(event) => setSellForm({ ...sellForm, tags: event.target.value })} placeholder="arb, quick exit" />
-        </Field>
-        <Field label="Notes" className="sm:col-span-2">
-          <textarea rows={4} value={sellForm.notes} onChange={(event) => setSellForm({ ...sellForm, notes: event.target.value })} placeholder="Optional notes" />
-        </Field>
-        <div className="sm:col-span-2 flex flex-wrap gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <span className="text-sm text-slate-300">Gross Revenue: {currencyFormatter((sellForm.usdSold || 0) * (sellForm.sellRate || 0))}</span>
-          <span className="text-sm text-slate-300">Net Revenue: {currencyFormatter((sellForm.usdSold || 0) * (sellForm.sellRate || 0) - (sellForm.bankCharges || 0) - (sellForm.additionalCharges || 0))}</span>
-          <span className="text-sm text-slate-300">Quick Profit Estimate: {currencyFormatter(quickProfit)}</span>
+    <div className="space-y-4">
+      <SectionCard title="Sell Transaction" subtitle="Allocate inventory using FIFO with a clear profit preview and fast correction tools">
+        <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+          <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSellSubmit}>
+            <Field label="Date & Time">
+              <input type="datetime-local" value={sellForm.dateTime} onChange={(event) => setSellForm({ ...sellForm, dateTime: event.target.value })} />
+            </Field>
+            <Field label="Currency">
+              <select value={sellForm.currency} onChange={(event) => setSellForm({ ...sellForm, currency: event.target.value as SellFormState['currency'] })}>
+                {getCurrencyOptions().map((currency) => (
+                  <option key={currency} value={currency}>
+                    {currency}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Sell Rate (LKR per USD)">
+              <input type="number" min="0" step="0.01" value={sellForm.sellRate || ''} onChange={(event) => setSellForm({ ...sellForm, sellRate: Number(event.target.value) })} />
+            </Field>
+            <Field label="USD Sold">
+              <input type="number" min="0" step="0.01" value={sellForm.usdSold || ''} onChange={(event) => setSellForm({ ...sellForm, usdSold: Number(event.target.value) })} />
+            </Field>
+            <Field label="Bank Charges">
+              <input type="number" min="0" step="0.01" value={sellForm.bankCharges || ''} onChange={(event) => setSellForm({ ...sellForm, bankCharges: Number(event.target.value) })} />
+            </Field>
+            <Field label="Additional Charges">
+              <input type="number" min="0" step="0.01" value={sellForm.additionalCharges || ''} onChange={(event) => setSellForm({ ...sellForm, additionalCharges: Number(event.target.value) })} />
+            </Field>
+            <Field label="Tags">
+              <input type="text" value={sellForm.tags} onChange={(event) => setSellForm({ ...sellForm, tags: event.target.value })} placeholder="arb, quick exit" />
+            </Field>
+            <Field label="Notes" className="sm:col-span-2">
+              <textarea rows={4} value={sellForm.notes} onChange={(event) => setSellForm({ ...sellForm, notes: event.target.value })} placeholder="Optional notes" />
+            </Field>
+            <div className="sm:col-span-2 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-cyan-200">Gross Revenue</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{currencyFormatter((sellForm.usdSold || 0) * (sellForm.sellRate || 0))}</p>
+              </div>
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-emerald-200">Net Revenue</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{currencyFormatter((sellForm.usdSold || 0) * (sellForm.sellRate || 0) - (sellForm.bankCharges || 0) - (sellForm.additionalCharges || 0))}</p>
+              </div>
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-amber-200">Quick Profit Estimate</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{currencyFormatter(quickProfit)}</p>
+              </div>
+            </div>
+            <button className="sm:col-span-2 rounded-2xl bg-emerald-400 px-4 py-3 font-semibold text-slate-950 shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-300" type="submit">
+              Save Sell Transaction
+            </button>
+          </form>
+
+          <div className="space-y-3">
+            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Recent Sells</p>
+              <p className="mt-2 text-sm text-slate-300">Review, edit, or delete the latest trades right here.</p>
+            </div>
+            {state.sells.length === 0 ? (
+              <EmptyState title="No sell entries yet" description="Your latest sells will appear here with edit and delete actions." />
+            ) : (
+              <div className="space-y-3">
+                {state.sells.slice(0, 4).map((sell) => (
+                  <article key={sell.id} className="rounded-[24px] border border-white/10 bg-[var(--app-card-soft)] p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{friendlyDateTime(sell.dateTime)}</p>
+                        <p className="mt-1 text-xs text-slate-400">{sell.currency} • {sell.tags.length > 0 ? sell.tags.join(', ') : 'No tags'}</p>
+                      </div>
+                      <p className={classNames('text-right text-lg font-semibold', sell.profit >= 0 ? 'text-emerald-300' : 'text-rose-300')}>
+                        {currencyFormatter(sell.profit)}
+                      </p>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => openEditor('sell', 'view', sell.id)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10">
+                        <Eye className="h-3.5 w-3.5" />
+                        View
+                      </button>
+                      <button type="button" onClick={() => openEditor('sell', 'edit', sell.id)} className="inline-flex items-center gap-2 rounded-xl border border-cyan-400/20 bg-cyan-400/15 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-400/25">
+                        <Edit2 className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                      <button type="button" onClick={() => confirmDelete('Delete Sell Transaction', 'This action will recalculate inventory, profits, reports and analytics.', () => actions.deleteSellTransaction(sell.id))} className="inline-flex items-center gap-2 rounded-xl border border-rose-400/20 bg-rose-400/15 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/25">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <button className="sm:col-span-2 rounded-2xl bg-emerald-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-emerald-300" type="submit">
-          Save Sell Transaction
-        </button>
-      </form>
-    </SectionCard>
+      </SectionCard>
+    </div>
   )
 
   const renderInventoryPage = () => (
