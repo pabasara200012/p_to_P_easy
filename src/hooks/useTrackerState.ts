@@ -25,6 +25,7 @@ import type {
 import { applyFifoSell, buildInventoryLot, getAvailableUsd } from '../utils/fifo'
 import { createId } from '../utils/ids'
 import { clearPersistedState, loadPersistedState, persistState } from '../utils/storage'
+import { createCloudStorageService } from '../services/cloudSync'
 
 const defaultSettings: AppSettings = {
   theme: 'dark',
@@ -580,6 +581,76 @@ export const useTrackerState = () => {
 
   const updateCloudSync = (cloudSync: CloudSyncConfig) => setState((previous) => ({ ...previous, cloudSync }))
 
+  const syncToCloud = async () => {
+    if (!state.cloudSync.enabled || state.cloudSync.provider === 'local') {
+      return { ok: false, message: 'Enable GitHub Gist sync first.' }
+    }
+
+    try {
+      const service = createCloudStorageService(state.cloudSync.provider, state)
+      const result = await service.save(state)
+      if (result.gistId) {
+        setState((previous) => ({
+          ...previous,
+          cloudSync: {
+            ...previous.cloudSync,
+            gistId: result.gistId,
+            lastSyncedAt: new Date().toISOString(),
+            lastSyncError: undefined,
+          },
+        }))
+      } else {
+        setState((previous) => ({
+          ...previous,
+          cloudSync: {
+            ...previous.cloudSync,
+            lastSyncedAt: new Date().toISOString(),
+            lastSyncError: undefined,
+          },
+        }))
+      }
+
+      return { ok: true, message: 'Saved to GitHub Gist.' }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'GitHub sync failed.'
+      setState((previous) => ({
+        ...previous,
+        cloudSync: {
+          ...previous.cloudSync,
+          lastSyncError: message,
+        },
+      }))
+      return { ok: false, message }
+    }
+  }
+
+  const loadFromCloud = async () => {
+    if (!state.cloudSync.enabled || state.cloudSync.provider === 'local') {
+      return { ok: false, message: 'Enable GitHub Gist sync first.' }
+    }
+
+    try {
+      const service = createCloudStorageService(state.cloudSync.provider, state)
+      const remoteState = await service.load()
+      if (!remoteState) {
+        return { ok: false, message: 'No Gist backup found.' }
+      }
+
+      setState(() => addAuditEntry(deriveState(cloneState(normalizePersistedState(remoteState))), 'Data Restored', 'System', 'Loaded data from GitHub Gist'))
+      return { ok: true, message: 'Loaded data from GitHub Gist.' }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'GitHub sync failed.'
+      setState((previous) => ({
+        ...previous,
+        cloudSync: {
+          ...previous.cloudSync,
+          lastSyncError: message,
+        },
+      }))
+      return { ok: false, message }
+    }
+  }
+
   const logExport = (details: string) =>
     setState((previous) => addAuditEntry(previous, 'Data Exported', 'System', details))
 
@@ -645,6 +716,8 @@ export const useTrackerState = () => {
       saveFilter,
       addNotification,
       updateCloudSync,
+      syncToCloud,
+      loadFromCloud,
       createManualBackup,
       logExport,
       importState,

@@ -46,9 +46,14 @@ export interface ArchivedTransactionGroup {
 }
 
 export interface CloudSyncConfig {
-  provider: 'local' | 'firebase' | 'supabase' | 'postgres'
+  provider: 'local' | 'firebase' | 'supabase' | 'postgres' | 'github-gist'
   enabled: boolean
   endpoint?: string
+  gistId?: string
+  accessToken?: string
+  fileName?: string
+  lastSyncedAt?: string
+  lastSyncError?: string
 }
 
 export interface BuyTransaction {
