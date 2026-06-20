@@ -29,7 +29,7 @@ import { buildAnalytics } from './utils/analytics'
 import { getCurrencyOptions } from './utils/currency'
 import { friendlyDateTime, formatMoney, formatNumber, formatPercent, formatUsd, toInputDateTime } from './utils/format'
 import { useTrackerState } from './hooks/useTrackerState'
-import type { BuyFormState, DateRange, PageKey, SavedFilter, SellFormState } from './types'
+import type { BuyFormState, DateRange, PageKey, SellFormState } from './types'
 import { buildDailyReport, buildMonthlyReport, buildOverallReport, buildWeeklyReport, toCsv, toJson, toWorkbook } from './utils/reports'
 import { applyTradeSearch, parseTradeSearchQuery } from './state/selectors'
 
@@ -757,16 +757,6 @@ function App() {
   const renderHistoryPage = () => {
     const allFilteredBuyIds = filteredBuys.map((buy) => buy.id)
     const allFilteredSellIds = filteredSells.map((sell) => sell.id)
-    const saveCurrentFilter = (name: string) => {
-      const filter: SavedFilter = {
-        id: `filter-${Date.now()}`,
-        name,
-        query: JSON.stringify({ search, range, sortKey }),
-        createdAt: new Date().toISOString(),
-      }
-      actions.saveFilter(filter)
-      setStatusMessage(`Saved filter: ${name}`)
-    }
 
     return (
       <div className="space-y-4">
@@ -839,31 +829,6 @@ function App() {
             >
               Delete All Transactions
             </button>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Saved Filters" subtitle="Quick access to reusable search presets">
-          <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={() => saveCurrentFilter('High Profit Trades')} className="rounded-2xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/15">
-              Save High Profit Trades
-            </button>
-            <button type="button" onClick={() => saveCurrentFilter('This Month')} className="rounded-2xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/15">
-              Save This Month
-            </button>
-            <button type="button" onClick={() => saveCurrentFilter('Last 30 Days')} className="rounded-2xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/15">
-              Save Last 30 Days
-            </button>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {state.savedFilters.length === 0 ? (
-              <EmptyState title="No saved filters yet" description="Save search combinations like high profit trades or this month for one-click reuse." />
-            ) : state.savedFilters.map((filter) => (
-              <article key={filter.id} className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                <p className="font-semibold text-white">{filter.name}</p>
-                <p className="mt-2 text-xs text-slate-400">{friendlyDateTime(filter.createdAt)}</p>
-                <p className="mt-3 break-words text-xs text-slate-300">{filter.query}</p>
-              </article>
-            ))}
           </div>
         </SectionCard>
 
