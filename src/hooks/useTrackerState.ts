@@ -14,6 +14,8 @@ import type {
   SavedFilter,
   Goal,
   NotificationItem,
+  InventoryLot,
+  SellAllocation,
   SellFormState,
   SellTransaction,
   UndoSnapshot,
@@ -60,23 +62,51 @@ const createEmptyState = (): PersistedState => ({
   settings: defaultSettings,
 })
 
+const asArray = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : [])
+
+const normalizePersistedState = (state: PersistedState): PersistedState => ({
+  ...createEmptyState(),
+  ...state,
+  accounts: asArray<Account>(state.accounts),
+  buys: asArray<BuyTransaction>(state.buys),
+  sells: asArray<SellTransaction>(state.sells),
+  inventoryLots: asArray(state.inventoryLots),
+  archive: {
+    buys: asArray<BuyTransaction>(state.archive?.buys),
+    sells: asArray<SellTransaction>(state.archive?.sells),
+  },
+  backups: asArray<BackupSnapshot>(state.backups).map((backup) => ({
+    ...backup,
+    state: normalizePersistedState(backup.state),
+  })),
+  auditLog: asArray<AuditLogEntry>(state.auditLog),
+  goals: asArray<Goal>(state.goals),
+  savedFilters: asArray<SavedFilter>(state.savedFilters),
+  notifications: asArray<NotificationItem>(state.notifications),
+  cloudSync: state.cloudSync ?? createEmptyState().cloudSync,
+  settings: {
+    ...defaultSettings,
+    ...(state.settings ?? {}),
+  },
+})
+
 const cloneState = (state: PersistedState): PersistedState => ({
   ...state,
-  accounts: state.accounts.map((entry) => ({ ...entry })),
-  buys: state.buys.map((entry) => ({ ...entry, tags: [...entry.tags] })),
-  sells: state.sells.map((entry) => ({ ...entry, tags: [...entry.tags], allocations: entry.allocations.map((allocation) => ({ ...allocation })) })),
-  inventoryLots: state.inventoryLots.map((entry) => ({ ...entry })),
+  accounts: asArray<Account>(state.accounts).map((entry) => ({ ...entry })),
+  buys: asArray<BuyTransaction>(state.buys).map((entry) => ({ ...entry, tags: asArray<string>(entry.tags) })),
+  sells: asArray<SellTransaction>(state.sells).map((entry) => ({ ...entry, tags: asArray<string>(entry.tags), allocations: asArray<SellAllocation>(entry.allocations).map((allocation) => ({ ...allocation })) })),
+  inventoryLots: asArray<InventoryLot>(state.inventoryLots).map((entry) => ({ ...entry })),
   archive: {
-    buys: state.archive.buys.map((entry) => ({ ...entry, tags: [...entry.tags] })),
-    sells: state.archive.sells.map((entry) => ({ ...entry, tags: [...entry.tags], allocations: entry.allocations.map((allocation) => ({ ...allocation })) })),
+    buys: asArray<BuyTransaction>(state.archive?.buys).map((entry) => ({ ...entry, tags: asArray<string>(entry.tags) })),
+    sells: asArray<SellTransaction>(state.archive?.sells).map((entry) => ({ ...entry, tags: asArray<string>(entry.tags), allocations: asArray<SellAllocation>(entry.allocations).map((allocation) => ({ ...allocation })) })),
   },
-  backups: state.backups.map((backup) => ({ ...backup, state: cloneState(backup.state) })),
-  auditLog: state.auditLog.map((entry) => ({ ...entry })),
-  goals: state.goals.map((entry) => ({ ...entry })),
-  savedFilters: state.savedFilters.map((entry) => ({ ...entry })),
-  notifications: state.notifications.map((entry) => ({ ...entry })),
-  cloudSync: { ...state.cloudSync },
-  settings: { ...state.settings },
+  backups: asArray<BackupSnapshot>(state.backups).map((backup) => ({ ...backup, state: cloneState(normalizePersistedState(backup.state)) })),
+  auditLog: asArray<AuditLogEntry>(state.auditLog).map((entry) => ({ ...entry })),
+  goals: asArray<Goal>(state.goals).map((entry) => ({ ...entry })),
+  savedFilters: asArray<SavedFilter>(state.savedFilters).map((entry) => ({ ...entry })),
+  notifications: asArray<NotificationItem>(state.notifications).map((entry) => ({ ...entry })),
+  cloudSync: { ...createEmptyState().cloudSync, ...(state.cloudSync ?? {}) },
+  settings: { ...defaultSettings, ...(state.settings ?? {}) },
 })
 
 const parseTags = (value: string) => value.split(',').map((tag) => tag.trim()).filter(Boolean)
@@ -184,7 +214,7 @@ const totalBoughtUsd = (state: PersistedState) => state.buys.reduce((sum, buy) =
 const totalSoldUsd = (state: PersistedState) => state.sells.reduce((sum, sell) => sum + sell.usdSold, 0)
 
 export const useTrackerState = () => {
-  const [state, setState] = useState<PersistedState>(() => deriveState(loadPersistedState(createEmptyState())))
+  const [state, setState] = useState<PersistedState>(() => deriveState(normalizePersistedState(loadPersistedState(createEmptyState()))))
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null)
 
   useEffect(() => {
@@ -439,7 +469,7 @@ export const useTrackerState = () => {
       return { ok: false, message: 'Invalid backup file.' }
     }
 
-    setState(() => addAuditEntry(deriveState(cloneState(incoming)), 'Data Imported', 'System', 'Imported JSON backup'))
+    setState(() => addAuditEntry(deriveState(cloneState(normalizePersistedState(incoming))), 'Data Imported', 'System', 'Imported JSON backup'))
     return { ok: true }
   }
 
@@ -449,7 +479,7 @@ export const useTrackerState = () => {
       return { ok: false, message: 'Backup not found.' }
     }
 
-    setState(() => addAuditEntry(deriveState(cloneState(backup.state)), 'Data Restored', 'System', `Restored backup ${backupId}`))
+    setState(() => addAuditEntry(deriveState(cloneState(normalizePersistedState(backup.state))), 'Data Restored', 'System', `Restored backup ${backupId}`))
     return { ok: true }
   }
 
