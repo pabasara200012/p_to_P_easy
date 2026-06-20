@@ -1,7 +1,7 @@
 import type { FormEvent, ReactNode } from 'react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import classNames from 'classnames'
-import { addDays, format, startOfDay } from 'date-fns'
+import { format } from 'date-fns'
 import { AnimatePresence, motion } from 'framer-motion'
 import { jsPDF } from 'jspdf'
 import {
@@ -56,7 +56,7 @@ const emptySellForm = (): SellFormState => ({
 })
 
 const defaultRange = (): DateRange => ({
-  start: toInputDateTime(startOfDay(addDays(new Date(), -30))),
+  start: toInputDateTime(new Date('1970-01-01T00:00:00')),
   end: toInputDateTime(new Date()),
 })
 
