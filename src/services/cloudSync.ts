@@ -30,13 +30,16 @@ const getFirebaseConfig = (state: PersistedState) => {
   const projectId = firebaseConfig?.projectId?.trim() ?? ''
   const appId = firebaseConfig?.appId?.trim() ?? ''
   const databaseURL = firebaseConfig?.databaseURL?.trim() || FIREBASE_DEFAULT_DATABASE_URL
-  return { apiKey, authDomain, projectId, appId, databaseURL }
+  const storageBucket = firebaseConfig?.storageBucket?.trim()
+  const messagingSenderId = firebaseConfig?.messagingSenderId?.trim()
+  const measurementId = firebaseConfig?.measurementId?.trim()
+  return { apiKey, authDomain, projectId, appId, databaseURL, storageBucket, messagingSenderId, measurementId }
 }
 
 const firebaseAppCache = new Map<string, FirebaseApp>()
 
 const createFirebaseApp = (state: PersistedState) => {
-  const { apiKey, authDomain, projectId, appId } = getFirebaseConfig(state)
+  const { apiKey, authDomain, projectId, appId, databaseURL, storageBucket, messagingSenderId, measurementId } = getFirebaseConfig(state)
   if (!apiKey || !authDomain || !projectId || !appId) {
     throw new Error('Firebase configuration is incomplete.')
   }
@@ -46,7 +49,7 @@ const createFirebaseApp = (state: PersistedState) => {
     return existingApp
   }
 
-  const app = initializeApp({ apiKey, authDomain, projectId, appId, databaseURL: getFirebaseConfig(state).databaseURL }, projectId)
+  const app = initializeApp({ apiKey, authDomain, projectId, appId, databaseURL, storageBucket, messagingSenderId, measurementId }, projectId)
   firebaseAppCache.set(projectId, app)
   return app
 }

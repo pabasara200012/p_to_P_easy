@@ -1053,6 +1053,15 @@ function App() {
                   <Field label="Database URL">
                     <input value={state.cloudSync.firebaseConfig?.databaseURL ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, databaseURL: event.target.value } })} placeholder="https://project-default-rtdb.firebaseio.com" />
                   </Field>
+                  <Field label="Storage Bucket">
+                    <input value={state.cloudSync.firebaseConfig?.storageBucket ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, storageBucket: event.target.value } })} placeholder="project-id.firebasestorage.app" />
+                  </Field>
+                  <Field label="Messaging Sender ID">
+                    <input value={state.cloudSync.firebaseConfig?.messagingSenderId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, messagingSenderId: event.target.value } })} placeholder="1234567890" />
+                  </Field>
+                  <Field label="Measurement ID">
+                    <input value={state.cloudSync.firebaseConfig?.measurementId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, measurementId: event.target.value } })} placeholder="G-XXXXXXXXXX" />
+                  </Field>
                 </>
               ) : isGist ? (
                 <>

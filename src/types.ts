@@ -64,6 +64,9 @@ export interface FirebaseConfig {
   projectId?: string
   appId?: string
   databaseURL?: string
+  storageBucket?: string
+  messagingSenderId?: string
+  measurementId?: string
 }
 
 export interface BuyTransaction {
