@@ -48,7 +48,7 @@ const defaultAccount: Account = {
 }
 
 const defaultFirebaseConfig = {
-  apiKey: 'import.meta.env.VITE_FIREBASE_API_KEY ?? ''',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
   authDomain: 'p2p-easy.firebaseapp.com',
   projectId: 'p2p-easy',
   appId: '1:491117994400:web:226089d7ffc276b47d84c5',
