@@ -1019,6 +1019,103 @@ function App() {
 
   const renderSettingsPage = () => (
     <div className="space-y-4">
+      {(() => {
+        const isFirebase = state.cloudSync.provider === 'firebase'
+        const isGist = state.cloudSync.provider === 'github-gist'
+        const syncLabel = isFirebase ? 'Firebase' : isGist ? 'GitHub Gist' : 'Cloud'
+        return (
+          <SectionCard title="Cloud Sync" subtitle="Connect the app to Firebase Firestore or GitHub Gist">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Provider">
+                <select value={state.cloudSync.provider} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, provider: event.target.value as 'local' | 'firebase' | 'supabase' | 'postgres' | 'github-gist' })}>
+                  <option value="local">Local Storage</option>
+                  <option value="firebase">Firebase</option>
+                  <option value="supabase">Supabase</option>
+                  <option value="postgres">PostgreSQL API</option>
+                  <option value="github-gist">GitHub Gist</option>
+                </select>
+              </Field>
+
+              {isFirebase ? (
+                <>
+                  <Field label="Firebase API Key">
+                    <input value={state.cloudSync.firebaseConfig?.apiKey ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, apiKey: event.target.value } })} placeholder="AIza..." />
+                  </Field>
+                  <Field label="Auth Domain">
+                    <input value={state.cloudSync.firebaseConfig?.authDomain ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, authDomain: event.target.value } })} placeholder="your-app.firebaseapp.com" />
+                  </Field>
+                  <Field label="Project ID">
+                    <input value={state.cloudSync.firebaseConfig?.projectId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, projectId: event.target.value } })} placeholder="my-firebase-project" />
+                  </Field>
+                  <Field label="App ID">
+                    <input value={state.cloudSync.firebaseConfig?.appId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, appId: event.target.value } })} placeholder="1:123:web:abc" />
+                  </Field>
+                  <Field label="Collection Path">
+                    <input value={state.cloudSync.firebaseConfig?.collectionPath ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, collectionPath: event.target.value } })} placeholder="p2p-state" />
+                  </Field>
+                  <Field label="Document ID">
+                    <input value={state.cloudSync.firebaseConfig?.documentId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, documentId: event.target.value } })} placeholder="current" />
+                  </Field>
+                </>
+              ) : isGist ? (
+                <>
+                  <Field label="Gist ID">
+                    <input value={state.cloudSync.gistId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, gistId: event.target.value })} placeholder="GitHub Gist id" />
+                  </Field>
+                  <Field label="GitHub Token">
+                    <input value={state.cloudSync.accessToken ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, accessToken: event.target.value })} placeholder="ghp_..." />
+                  </Field>
+                  <Field label="File Name">
+                    <input value={state.cloudSync.fileName ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, fileName: event.target.value })} placeholder="p2p-backup.json" />
+                  </Field>
+                </>
+              ) : (
+                <div className="sm:col-span-2 rounded-3xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                  Choose Firebase or GitHub Gist to enable cloud sync.
+                </div>
+              )}
+
+              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 sm:col-span-2">
+                <input type="checkbox" checked={state.cloudSync.enabled} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, enabled: event.target.checked })} />
+                Enable {syncLabel} cloud save
+              </label>
+              <div className="flex flex-wrap gap-3 sm:col-span-2">
+                <button
+                  type="button"
+                  onClick={async () => setStatusMessage((await actions.syncToCloud()).message ?? '')}
+                  className="rounded-2xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300"
+                >
+                  Save to {syncLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => setStatusMessage((await actions.loadFromCloud()).message ?? '')}
+                  className="rounded-2xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/15"
+                >
+                  Load from {syncLabel}
+                </button>
+              </div>
+              <div className="sm:col-span-2 grid gap-3 rounded-3xl border border-white/10 bg-white/5 p-4 md:grid-cols-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Cloud Save</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{state.cloudSync.enabled && state.cloudSync.provider !== 'local' ? 'Enabled' : 'Disabled'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Last Sync</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{state.cloudSync.lastSyncedAt ? format(new Date(state.cloudSync.lastSyncedAt), 'PPpp') : 'Not synced yet'}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Sync Status</p>
+                  <p className={classNames('mt-2 text-sm font-semibold', state.cloudSync.lastSyncError ? 'text-rose-300' : 'text-emerald-300')}>
+                    {state.cloudSync.lastSyncError ? state.cloudSync.lastSyncError : state.cloudSync.lastSyncMessage ?? 'Ready'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+        )
+      })()}
+
       <SectionCard title="Preferences" subtitle="Configure display, backup, and theme behavior">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Currency Format">
@@ -1073,57 +1170,6 @@ function App() {
             <button type="button" onClick={() => actions.resetAnalytics()} className="rounded-2xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/15">Reset Analytics</button>
             <button type="button" onClick={() => actions.createManualBackup(`Settings snapshot ${format(new Date(), 'PPpp')}`)} className="rounded-2xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300">Save Snapshot</button>
             <button type="button" onClick={() => setConfirmationOpen(true)} className="rounded-2xl bg-rose-500 px-4 py-3 font-semibold text-white transition hover:bg-rose-400">Clear All Data</button>
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard title="Cloud Sync Preparation" subtitle="Local storage now, cloud backends later">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Provider">
-            <select value={state.cloudSync.provider} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, provider: event.target.value as 'local' | 'firebase' | 'supabase' | 'postgres' | 'github-gist' })}>
-              <option value="local">Local Storage</option>
-              <option value="firebase">Firebase</option>
-              <option value="supabase">Supabase</option>
-              <option value="postgres">PostgreSQL API</option>
-              <option value="github-gist">GitHub Gist</option>
-            </select>
-          </Field>
-          <Field label="Gist ID">
-            <input value={state.cloudSync.gistId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, gistId: event.target.value })} placeholder="GitHub Gist id" />
-          </Field>
-          <Field label="GitHub Token">
-            <input value={state.cloudSync.accessToken ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, accessToken: event.target.value })} placeholder="ghp_..." />
-          </Field>
-          <Field label="File Name">
-            <input value={state.cloudSync.fileName ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, fileName: event.target.value })} placeholder="p2p-backup.json" />
-          </Field>
-          <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 sm:col-span-2">
-            <input type="checkbox" checked={state.cloudSync.enabled} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, enabled: event.target.checked })} />
-            Enable GitHub Gist cloud save
-          </label>
-          <div className="flex flex-wrap gap-3 sm:col-span-2">
-            <button type="button" onClick={async () => setStatusMessage((await actions.syncToCloud()).message ?? '')} className="rounded-2xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300">
-              Save to Gist
-            </button>
-            <button type="button" onClick={async () => setStatusMessage((await actions.loadFromCloud()).message ?? '')} className="rounded-2xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/15">
-              Load from Gist
-            </button>
-          </div>
-          <div className="sm:col-span-2 grid gap-3 rounded-3xl border border-white/10 bg-white/5 p-4 md:grid-cols-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Cloud Save</p>
-              <p className="mt-2 text-sm font-semibold text-white">{state.cloudSync.enabled && state.cloudSync.provider === 'github-gist' ? 'Enabled' : 'Disabled'}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Last Sync</p>
-              <p className="mt-2 text-sm font-semibold text-white">{state.cloudSync.lastSyncedAt ? format(new Date(state.cloudSync.lastSyncedAt), 'PPpp') : 'Not synced yet'}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Sync Status</p>
-              <p className={classNames('mt-2 text-sm font-semibold', state.cloudSync.lastSyncError ? 'text-rose-300' : 'text-emerald-300')}>
-                {state.cloudSync.lastSyncError ? state.cloudSync.lastSyncError : state.cloudSync.lastSyncMessage ?? 'Ready'}
-              </p>
-            </div>
           </div>
         </div>
       </SectionCard>

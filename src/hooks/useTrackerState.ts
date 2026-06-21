@@ -110,6 +110,18 @@ const cloneState = (state: PersistedState): PersistedState => ({
   settings: { ...defaultSettings, ...(state.settings ?? {}) },
 })
 
+const remoteSyncProviderLabel = (provider: PersistedState['cloudSync']['provider']) => {
+  if (provider === 'firebase') {
+    return 'Firebase'
+  }
+
+  if (provider === 'github-gist') {
+    return 'GitHub Gist'
+  }
+
+  return 'Cloud'
+}
+
 const parseTags = (value: string) => value.split(',').map((tag) => tag.trim()).filter(Boolean)
 const isPositiveNumber = (value: number) => Number.isFinite(value) && value > 0
 
@@ -219,7 +231,7 @@ export const useTrackerState = () => {
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null)
 
   const syncStateToCloud = async (nextState: PersistedState) => {
-    if (!nextState.cloudSync.enabled || nextState.cloudSync.provider !== 'github-gist') {
+    if (!nextState.cloudSync.enabled || (nextState.cloudSync.provider !== 'firebase' && nextState.cloudSync.provider !== 'github-gist')) {
       return
     }
 
@@ -232,7 +244,7 @@ export const useTrackerState = () => {
           ...previous.cloudSync,
           gistId: result.gistId ?? previous.cloudSync.gistId,
           lastSyncedAt: new Date().toISOString(),
-          lastSyncMessage: 'Saved to GitHub Gist',
+          lastSyncMessage: `Saved to ${remoteSyncProviderLabel(nextState.cloudSync.provider)}`,
           lastSyncError: undefined,
         },
       }))
@@ -635,8 +647,8 @@ export const useTrackerState = () => {
   const updateCloudSync = (cloudSync: CloudSyncConfig) => setState((previous) => ({ ...previous, cloudSync }))
 
   const syncToCloud = async () => {
-    if (!state.cloudSync.enabled || state.cloudSync.provider === 'local') {
-      return { ok: false, message: 'Enable GitHub Gist sync first.' }
+    if (!state.cloudSync.enabled || (state.cloudSync.provider !== 'firebase' && state.cloudSync.provider !== 'github-gist')) {
+      return { ok: false, message: 'Select Firebase or GitHub Gist and enable cloud save first.' }
     }
 
     try {
@@ -649,7 +661,7 @@ export const useTrackerState = () => {
             ...previous.cloudSync,
             gistId: result.gistId,
             lastSyncedAt: new Date().toISOString(),
-            lastSyncMessage: 'Saved to GitHub Gist',
+            lastSyncMessage: `Saved to ${remoteSyncProviderLabel(state.cloudSync.provider)}`,
             lastSyncError: undefined,
           },
         }))
@@ -659,13 +671,13 @@ export const useTrackerState = () => {
           cloudSync: {
             ...previous.cloudSync,
             lastSyncedAt: new Date().toISOString(),
-              lastSyncMessage: 'Saved to GitHub Gist',
+            lastSyncMessage: `Saved to ${remoteSyncProviderLabel(state.cloudSync.provider)}`,
             lastSyncError: undefined,
           },
         }))
       }
 
-      return { ok: true, message: 'Saved to GitHub Gist.' }
+      return { ok: true, message: `Saved to ${remoteSyncProviderLabel(state.cloudSync.provider)}.` }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'GitHub sync failed.'
       setState((previous) => ({
@@ -681,8 +693,8 @@ export const useTrackerState = () => {
   }
 
   const loadFromCloud = async () => {
-    if (!state.cloudSync.enabled || state.cloudSync.provider === 'local') {
-      return { ok: false, message: 'Enable GitHub Gist sync first.' }
+    if (!state.cloudSync.enabled || (state.cloudSync.provider !== 'firebase' && state.cloudSync.provider !== 'github-gist')) {
+      return { ok: false, message: 'Select Firebase or GitHub Gist and enable cloud save first.' }
     }
 
     try {
@@ -692,17 +704,17 @@ export const useTrackerState = () => {
         return { ok: false, message: 'No Gist backup found.' }
       }
 
-      setState(() => addAuditEntry(deriveState(cloneState(normalizePersistedState(remoteState))), 'Data Restored', 'System', 'Loaded data from GitHub Gist'))
+      setState(() => addAuditEntry(deriveState(cloneState(normalizePersistedState(remoteState))), 'Data Restored', 'System', `Loaded data from ${remoteSyncProviderLabel(state.cloudSync.provider)}`))
       setState((previous) => ({
         ...previous,
         cloudSync: {
           ...previous.cloudSync,
-          lastSyncMessage: 'Loaded from GitHub Gist',
+          lastSyncMessage: `Loaded from ${remoteSyncProviderLabel(state.cloudSync.provider)}`,
           lastSyncError: undefined,
           lastSyncedAt: new Date().toISOString(),
         },
       }))
-      return { ok: true, message: 'Loaded data from GitHub Gist.' }
+      return { ok: true, message: `Loaded data from ${remoteSyncProviderLabel(state.cloudSync.provider)}.` }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'GitHub sync failed.'
       setState((previous) => ({

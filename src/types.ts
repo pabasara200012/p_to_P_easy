@@ -49,12 +49,22 @@ export interface CloudSyncConfig {
   provider: 'local' | 'firebase' | 'supabase' | 'postgres' | 'github-gist'
   enabled: boolean
   endpoint?: string
+  firebaseConfig?: FirebaseConfig
   gistId?: string
   accessToken?: string
   fileName?: string
   lastSyncedAt?: string
   lastSyncMessage?: string
   lastSyncError?: string
+}
+
+export interface FirebaseConfig {
+  apiKey?: string
+  authDomain?: string
+  projectId?: string
+  appId?: string
+  collectionPath?: string
+  documentId?: string
 }
 
 export interface BuyTransaction {
