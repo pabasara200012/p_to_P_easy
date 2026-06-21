@@ -63,8 +63,7 @@ export interface FirebaseConfig {
   authDomain?: string
   projectId?: string
   appId?: string
-  collectionPath?: string
-  documentId?: string
+  databaseURL?: string
 }
 
 export interface BuyTransaction {

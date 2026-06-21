@@ -2,7 +2,7 @@ import type { PersistedState } from '../types'
 import { clearPersistedState, loadPersistedState, persistState } from '../utils/storage'
 import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getAuth, signInAnonymously } from 'firebase/auth'
-import { deleteDoc, doc, getDoc, getFirestore, setDoc } from 'firebase/firestore'
+import { get, getDatabase, ref, remove, set } from 'firebase/database'
 
 export interface CloudStorageService {
   load(): Promise<PersistedState | null>
@@ -11,8 +11,8 @@ export interface CloudStorageService {
 }
 
 const GITHUB_API_BASE = 'https://api.github.com'
-const FIREBASE_DEFAULT_COLLECTION = 'p2p-state'
-const FIREBASE_DEFAULT_DOCUMENT = 'current'
+const FIREBASE_DEFAULT_DATABASE_URL = 'https://p2p-easy-default-rtdb.firebaseio.com'
+const FIREBASE_DEFAULT_DATA_PATH = 'p2p-state/current'
 
 const cloneWithoutSecrets = (state: PersistedState): PersistedState => ({
   ...state,
@@ -26,12 +26,11 @@ const cloneWithoutSecrets = (state: PersistedState): PersistedState => ({
 const getFirebaseConfig = (state: PersistedState) => {
   const firebaseConfig = state.cloudSync.firebaseConfig
   const apiKey = firebaseConfig?.apiKey?.trim() ?? ''
-  const authDomain = firebaseConfig?.authDomain?.trim() ?? ''
+  const authDomain = firebaseConfig?.authDomain?.trim() ?? `${firebaseConfig?.projectId?.trim() || 'p2p-easy'}.firebaseapp.com`
   const projectId = firebaseConfig?.projectId?.trim() ?? ''
   const appId = firebaseConfig?.appId?.trim() ?? ''
-  const collectionPath = firebaseConfig?.collectionPath?.trim() || FIREBASE_DEFAULT_COLLECTION
-  const documentId = firebaseConfig?.documentId?.trim() || FIREBASE_DEFAULT_DOCUMENT
-  return { apiKey, authDomain, projectId, appId, collectionPath, documentId }
+  const databaseURL = firebaseConfig?.databaseURL?.trim() || FIREBASE_DEFAULT_DATABASE_URL
+  return { apiKey, authDomain, projectId, appId, databaseURL }
 }
 
 const firebaseAppCache = new Map<string, FirebaseApp>()
@@ -47,7 +46,7 @@ const createFirebaseApp = (state: PersistedState) => {
     return existingApp
   }
 
-  const app = initializeApp({ apiKey, authDomain, projectId, appId }, projectId)
+  const app = initializeApp({ apiKey, authDomain, projectId, appId, databaseURL: getFirebaseConfig(state).databaseURL }, projectId)
   firebaseAppCache.set(projectId, app)
   return app
 }
@@ -157,7 +156,7 @@ class GitHubGistService implements CloudStorageService {
   }
 }
 
-class FirebaseFirestoreService implements CloudStorageService {
+class FirebaseRealtimeDatabaseService implements CloudStorageService {
   private readonly fallback: PersistedState
 
   constructor(fallback: PersistedState) {
@@ -166,27 +165,26 @@ class FirebaseFirestoreService implements CloudStorageService {
 
   private getDocumentRef(state: PersistedState = this.fallback) {
     const app = createFirebaseApp(state)
-    const firestore = getFirestore(app)
-    const { collectionPath, documentId } = getFirebaseConfig(state)
-    return doc(firestore, collectionPath, documentId)
+    const database = getDatabase(app)
+    return ref(database, FIREBASE_DEFAULT_DATA_PATH)
   }
 
   async load() {
     const app = createFirebaseApp(this.fallback)
     await ensureAnonymousAuth(app)
-    const snapshot = await getDoc(this.getDocumentRef())
+    const snapshot = await get(this.getDocumentRef())
     if (!snapshot.exists()) {
       return null
     }
 
-    const payload = snapshot.data() as { state?: PersistedState }
-    return payload.state ? (payload.state as PersistedState) : null
+    const payload = snapshot.val() as { state?: PersistedState } | null
+    return payload?.state ? (payload.state as PersistedState) : null
   }
 
   async save(state: PersistedState) {
     const app = createFirebaseApp(state)
     await ensureAnonymousAuth(app)
-    await setDoc(this.getDocumentRef(state), {
+    await set(this.getDocumentRef(state), {
       state: cloneWithoutSecrets(state),
       updatedAt: new Date().toISOString(),
     })
@@ -196,7 +194,7 @@ class FirebaseFirestoreService implements CloudStorageService {
   async clear() {
     const app = createFirebaseApp(this.fallback)
     await ensureAnonymousAuth(app)
-    await deleteDoc(this.getDocumentRef())
+    await remove(this.getDocumentRef())
   }
 }
 
@@ -223,7 +221,7 @@ export class LocalStorageService implements CloudStorageService {
 
 export const createCloudStorageService = (provider: PersistedState['cloudSync']['provider'], fallback: PersistedState): CloudStorageService => {
   if (provider === 'firebase') {
-    return new FirebaseFirestoreService(fallback)
+    return new FirebaseRealtimeDatabaseService(fallback)
   }
 
   if (provider === 'github-gist') {

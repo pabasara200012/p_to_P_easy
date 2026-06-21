@@ -1024,7 +1024,7 @@ function App() {
         const isGist = state.cloudSync.provider === 'github-gist'
         const syncLabel = isFirebase ? 'Firebase' : isGist ? 'GitHub Gist' : 'Cloud'
         return (
-          <SectionCard title="Cloud Sync" subtitle="Connect the app to Firebase Firestore or GitHub Gist">
+          <SectionCard title="Cloud Sync" subtitle="Connect the app to Firebase Realtime Database or GitHub Gist">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Provider">
                 <select value={state.cloudSync.provider} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, provider: event.target.value as 'local' | 'firebase' | 'supabase' | 'postgres' | 'github-gist' })}>
@@ -1050,11 +1050,8 @@ function App() {
                   <Field label="App ID">
                     <input value={state.cloudSync.firebaseConfig?.appId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, appId: event.target.value } })} placeholder="1:123:web:abc" />
                   </Field>
-                  <Field label="Collection Path">
-                    <input value={state.cloudSync.firebaseConfig?.collectionPath ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, collectionPath: event.target.value } })} placeholder="p2p-state" />
-                  </Field>
-                  <Field label="Document ID">
-                    <input value={state.cloudSync.firebaseConfig?.documentId ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, documentId: event.target.value } })} placeholder="current" />
+                  <Field label="Database URL">
+                    <input value={state.cloudSync.firebaseConfig?.databaseURL ?? ''} onChange={(event) => actions.updateCloudSync({ ...state.cloudSync, firebaseConfig: { ...state.cloudSync.firebaseConfig, databaseURL: event.target.value } })} placeholder="https://project-default-rtdb.firebaseio.com" />
                   </Field>
                 </>
               ) : isGist ? (

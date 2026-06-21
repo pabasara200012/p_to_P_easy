@@ -47,6 +47,14 @@ const defaultAccount: Account = {
   createdAt: new Date().toISOString(),
 }
 
+const defaultFirebaseConfig = {
+  apiKey: 'AIzaSyBIxpesnxHhnzJWIr0vJxmqx8LPM2j68E',
+  authDomain: 'p2p-easy.firebaseapp.com',
+  projectId: 'p2p-easy',
+  appId: '1:491117994400:web:226089d7ffc276b47d84c5',
+  databaseURL: 'https://p2p-easy-default-rtdb.firebaseio.com',
+}
+
 const createEmptyState = (): PersistedState => ({
   accounts: [defaultAccount],
   activeAccountId: defaultAccount.id,
@@ -59,7 +67,7 @@ const createEmptyState = (): PersistedState => ({
   goals: [],
   savedFilters: [],
   notifications: [],
-  cloudSync: { provider: 'local', enabled: false },
+  cloudSync: { provider: 'local', enabled: false, firebaseConfig: defaultFirebaseConfig },
   settings: defaultSettings,
 })
 
@@ -84,7 +92,14 @@ const normalizePersistedState = (state: PersistedState): PersistedState => ({
   goals: asArray<Goal>(state.goals),
   savedFilters: asArray<SavedFilter>(state.savedFilters),
   notifications: asArray<NotificationItem>(state.notifications),
-  cloudSync: state.cloudSync ?? createEmptyState().cloudSync,
+  cloudSync: {
+    ...createEmptyState().cloudSync,
+    ...state.cloudSync,
+    firebaseConfig: {
+      ...defaultFirebaseConfig,
+      ...(state.cloudSync?.firebaseConfig ?? {}),
+    },
+  },
   settings: {
     ...defaultSettings,
     ...(state.settings ?? {}),
